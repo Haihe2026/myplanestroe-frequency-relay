@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "consumer_id": "codex-frequency-pc",
+  "status": "ready_waiting_muse_request",
+  "registered_at": "2026-11-16T22:25:13+08:00",
+  "startup_allowlist": {
+    "schema_version": 1,
+    "pipeline_repository": "Haihe2026/myplanestroe-frequency",
+    "pipeline_branch": "main",
+    "sop_path": "docs/sop/sop-frequency-skill-auto.md",
+    "product_root": "pipeline/products/",
+    "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
+    "relay_branch": "main",
+    "requests_root": "requests/",
+    "receipts_root": "receipts/codex/",
+    "consumer_id": "codex-frequency-pc",
+    "role": "codex",
+    "allowed_senders": [
+      "muse"
+    ],
+    "delivery": {
+      "mode": "chat_queue",
+      "thread_id": "01a1b145-e321-72b1-836d-da9452de10e8"
+    },
+    "poll_interval_seconds": 60,
+    "worker_enabled": false,
+    "explicit_requests_only": true
+  },
+  "code": {
+    "frequency_consumer.py": {
+      "bytes": 27321,
+      "sha256": "7413b15ca08a5328142306376bc2a06bfa502d6c8bc320263fa9644d6799e212"
+    },
+    "README.md": {
+      "bytes": 3766,
+      "sha256": "46d152a44a938f3222db3016a239934c03ab58a438dda80c51e8a06e7830466d"
+    },
+    "start.ps1": {
+      "bytes": 774,
+      "sha256": "ac243cad65e0523dee1dbc093a42a47f60542f511a8916bd60fc2f9a637cf5c9"
+    },
+    "stop.ps1": {
+      "bytes": 240,
+      "sha256": "4c9e0d999e1a58ee598c946a514de0a9ef8e012ef035728342aa3ca9e6a34043"
+    },
+    "test_frequency_consumer.py": {
+      "bytes": 24810,
+      "sha256": "5038b280e78e371392d6356a2b7ab759f8e9e8024e127b6ee335c580290beb5e"
+    },
+    "watch_frequency_consumer.py": {
+      "bytes": 2693,
+      "sha256": "ffd00b2f86829cce6d7e51c5e3fc917ecf2e9e0cd15ddf4dc7517b0433be7f15"
+    }
+  },
+  "source_bootstrap_ref": "d6e083bb37beebbed876f3ffb4a037ad6d0a551d",
+  "transport_mode": "explicit_requests_only",
+  "runtime_health": {
+    "state": "watching",
+    "at": "2026-11-16T22:24:49+08:00",
+    "pid": 45492,
+    "consumer_id": "codex-frequency-pc",
+    "pipeline_repository": "Haihe2026/myplanestroe-frequency",
+    "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
+    "poll_interval_seconds": 60,
+    "worker_enabled": false,
+    "explicit_requests_only": true,
+    "delivery_thread_id": "01a1b145-e321-72b1-836d-da9452de10e8",
+    "counts": {}
+  },
+  "supervisor": {
+    "state": "watching",
+    "pid": 45040,
+    "consumer_exit": 0,
+    "interval_seconds": 60
+  },
+  "login_startup": {
+    "enabled": true,
+    "unique_name": "SkillRelay-FrequencyCodexConsumer.vbs"
+  },
+  "single_supervisor_verified": true,
+  "tests": {
+    "windows": {
+      "executed": 36,
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0
+    },
+    "linux": {
+      "executed": 36,
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0
+    }
+  },
+  "synthetic_tests_only": true,
+  "live_synthetic_requests_created": 0,
+  "live_synthetic_chat_messages": 0,
+  "first_real_chat_delivery": "NOT_YET_OCCURRED",
+  "worker_enabled": false,
+  "image_relay_files_unchanged": true,
+  "image_startup_files_unchanged": true,
+  "image_supervisors_still_running": true,
+  "first_product_started": false,
+  "first_product_status_present": false,
+  "real_upstream_calls": 0,
+  "production_changes": 0,
+  "financial_changes": 0,
+  "uploads": 0
+}

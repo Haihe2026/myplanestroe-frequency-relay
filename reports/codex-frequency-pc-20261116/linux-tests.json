@@ -1,0 +1,174 @@
+{
+  "at": "2026-11-16T22:19:02+08:00",
+  "platform": "linux",
+  "python": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+  "source_manifest": {
+    "frequency_consumer.py": {
+      "bytes": 27321,
+      "sha256": "7413b15ca08a5328142306376bc2a06bfa502d6c8bc320263fa9644d6799e212"
+    },
+    "test_frequency_consumer.py": {
+      "bytes": 24810,
+      "sha256": "5038b280e78e371392d6356a2b7ab759f8e9e8024e127b6ee335c580290beb5e"
+    },
+    "watch_frequency_consumer.py": {
+      "bytes": 2693,
+      "sha256": "ffd00b2f86829cce6d7e51c5e3fc917ecf2e9e0cd15ddf4dc7517b0433be7f15"
+    }
+  },
+  "executed": 36,
+  "passed": 36,
+  "failures": 0,
+  "errors": 0,
+  "skipped": 0,
+  "records": [
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_ack_rejects_another_product_evidence_path",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_ack_rejects_the_wrong_claim_id_before_any_update",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_ack_rejects_uncommitted_or_nonfixed_evidence",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_ack_updates_both_keys_with_original_claim_and_fixed_business_evidence",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_actual_delivery_builds_only_the_bound_chat_queue_command",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_binding_accepts_only_the_fixed_frequency_identity",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_chat_binding_never_allows_a_worker_or_another_chat",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_current_status_wrong_skill_sop_or_stage_is_rejected",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_duplicate_poll_does_not_reclaim_or_redeliver",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_empty_request_directory_never_calls_queue_or_an_api_process",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_event_key_acknowledged_is_silent_even_if_alias_is_missing",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_exact_eight_request_fields_and_original_digest",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_fixed_source_prefix_can_use_markdown_code_ticks_for_repo_and_sop",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_invalid_startup_binding_exits_nonzero_before_any_network_or_child_command",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_legacy_flat_receipt_keys_are_checked_before_claim",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_lost_alias_claim_response_is_reconciled_without_second_claim",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_message_prefix_for_another_line_is_rejected_before_claim",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_missing_current_status_can_be_filled_then_consumed_without_new_claims",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_missing_fixed_sop_has_zero_effects",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_missing_fixed_source_has_zero_effects",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_noncanonical_traversal_encoded_and_other_product_paths_have_zero_effects",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_nonfixed_source_ref_has_zero_effects",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_positive_request_claims_both_keys_and_delivers_only_to_injected_chat",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_prefix_too_far_down_cannot_hide_the_wrong_message_header",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_remote_acknowledgement_is_reconciled_without_redelivery",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_remote_claim_without_this_local_claim_is_not_taken_over",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_request_alias_half_claim_recovers_the_same_uuid_after_restart",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_request_filename_must_match_the_request_id",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_request_for_muse_is_not_consumed_by_codex",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_request_key_acknowledged_is_silent_even_if_event_key_is_missing",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_restart_retains_delivery_intent_and_original_claim",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_same_ack_is_idempotent_without_extra_remote_writes",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_same_request_id_changed_body_cannot_create_a_second_event_claim",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_source_ref_that_exists_only_in_transport_repo_is_not_a_business_source",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_unknown_queue_outcome_is_never_blindly_resent",
+      "status": "PASS"
+    },
+    {
+      "id": "test_frequency_consumer.ConsumerIsolation.test_wrong_repository_including_cross_line_same_skill_has_zero_effects",
+      "status": "PASS"
+    }
+  ],
+  "live_GitHub_operations": 0,
+  "live_chat_queue_operations": 0,
+  "live_AI_workers": 0,
+  "real_upstream_calls": 0
+}

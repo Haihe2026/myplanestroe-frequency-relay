@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "pipeline_repository": "Haihe2026/myplanestroe-frequency",
+  "pipeline_branch": "main",
+  "sop_path": "docs/sop/sop-frequency-skill-auto.md",
+  "product_root": "pipeline/products/",
+  "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
+  "relay_branch": "main",
+  "requests_root": "requests/",
+  "receipts_root": "receipts/codex/",
+  "consumer_id": "codex-frequency-pc",
+  "role": "codex",
+  "allowed_senders": [
+    "muse"
+  ],
+  "delivery": {
+    "mode": "chat_queue",
+    "thread_id": "01a1b145-e321-72b1-836d-da9452de10e8"
+  },
+  "poll_interval_seconds": 60,
+  "worker_enabled": false,
+  "explicit_requests_only": true
+}
