@@ -25,6 +25,9 @@ PREFIX = f"频次流水线（仓库 {SOURCE_REPO}，SOP {SOP_PATH}）"
 REF = re.compile(r"[a-f0-9]{40}\Z")
 EVENT = re.compile(r"evt-[a-f0-9]{64}\Z")
 SLUG = re.compile(r"[a-z0-9][a-z0-9-]{0,63}\Z")
+REQUEST_ID = re.compile(r"[a-z0-9][a-z0-9-]{0,127}\Z")
+REQUEST_PATH = re.compile(r"requests/[a-z0-9][a-z0-9-]{0,127}\.json\Z")
+RECEIPT_PATH = re.compile(r"receipts/(?:codex/)?(?:evt-[a-f0-9]{64}|[a-z0-9][a-z0-9-]{0,127})\.json\Z")
 FIELDS = {"request_id", "from", "to", "skill_id", "source_repo", "source_ref", "source_path", "kind"}
 RECEIPT_FIELDS = {"event_id", "role", "action", "at", "evidence_ref", "claim_id"}
 STAGES = {"brief_ready", "spec_in_progress", "spec_ready", "dev_in_progress", "package_ready",
@@ -124,7 +127,7 @@ def validate_request(req, cfg):
         raise ValidationError("REQUEST_TARGET_NOT_ALLOWED", "request recipient is not this Codex consumer")
     if req["source_repo"] != SOURCE_REPO:
         raise ValidationError("SOURCE_REPO_NOT_ALLOWED", "request source_repo is not the registered frequency product repository")
-    if not SLUG.fullmatch(req["skill_id"]) or not SLUG.fullmatch(req["request_id"]):
+    if not SLUG.fullmatch(req["skill_id"]) or not REQUEST_ID.fullmatch(req["request_id"]):
         raise ValidationError("REQUEST_IDENTIFIER_INVALID", "invalid request or product identifier")
     if not REF.fullmatch(req["source_ref"]):
         raise ValidationError("SOURCE_REF_NOT_FIXED", "source_ref must be a fixed 40-character commit identity")
@@ -264,11 +267,11 @@ class GitHubBackend:
             if write or not (path == SOP_PATH or path.startswith(PRODUCT_ROOT)):
                 raise ValueError("source repository operation is not allowed")
         elif write:
-            if not (re.fullmatch(r"receipts/(?:codex/)?(?:evt-[a-f0-9]{64}|[a-z0-9][a-z0-9-]{0,63})\.json", path)
+            if not (RECEIPT_PATH.fullmatch(path)
                     or re.fullmatch(r"receipts/codex/issue-[a-f0-9]{64}\.md", path)):
                 raise ValueError("only frequency receipts and immutable issue notices may be written")
-        elif not (re.fullmatch(r"requests/[a-z0-9][a-z0-9-]{0,63}\.json", path)
-                  or re.fullmatch(r"receipts/(?:codex/)?(?:evt-[a-f0-9]{64}|[a-z0-9][a-z0-9-]{0,63})\.json", path)
+        elif not (REQUEST_PATH.fullmatch(path)
+                  or RECEIPT_PATH.fullmatch(path)
                   or re.fullmatch(r"receipts/codex/issue-[a-f0-9]{64}\.md", path)):
             raise ValueError("relay read is outside requests/receipts")
 
@@ -559,12 +562,16 @@ class Consumer:
             items = self.backend.list(RELAY_REPO, "requests/", relay_head)
             for item in sorted(items, key=lambda v: v.get("path", "")):
                 path = item.get("path", "")
-                if not re.fullmatch(r"requests/[a-z0-9][a-z0-9-]{0,63}\.json", path):
+                # Root JSON candidates must be reported even when their filename is invalid.
+                # A request identifier is not a skill slug; do not silently inherit its limit.
+                if not isinstance(path, str) or not path.lower().endswith(".json"):
                     continue
-                request_blob = "unavailable"
+                request_blob = item.get("sha") if isinstance(item.get("sha"), str) and REF.fullmatch(item["sha"]) else "unavailable"
                 req = None
                 parsed = None
                 try:
+                    if not REQUEST_PATH.fullmatch(path):
+                        raise ValidationError("REQUEST_FILENAME_INVALID", "root JSON request filename must contain a 1-128 character lowercase alphanumeric/hyphen request identifier")
                     raw, sha = self.backend.read(RELAY_REPO, path, relay_head)
                     request_blob = sha if isinstance(sha, str) and REF.fullmatch(sha) else hashlib.sha256(raw).hexdigest()
                     if sha != item.get("sha"):
@@ -615,6 +622,7 @@ class Consumer:
                     issues.append(dict(item=path, state=state, reason_code=code))
                 counts[state] = counts.get(state, 0) + 1
             result = dict(state="watching", at=now(), pid=os.getpid(), consumer_id=CONSUMER_ID,
+                          relay_head=relay_head, request_file_count=len(items),
                           pipeline_repository=SOURCE_REPO, relay_repository=RELAY_REPO,
                           poll_interval_seconds=60, worker_enabled=False, explicit_requests_only=True,
                           delivery_thread_id=THREAD_ID, counts=counts, issues=issues)

@@ -45,3 +45,9 @@ python frequency_consumer.py ack --event <event_id> --claim-id <original_claim_i
 2026-11-17T10:08:04+08:00：原先前5行逐字前缀硬校验错误拒绝了两份合法Muse说明。现在触发仅认本仓严格请求和机器白名单，文本身份只作提示，不让标题/排版变成静默门槛。两份真实固定消息已加入Mockfixtures，两端各42PASS；新拒绝/缺件有具体reason_code和receipts/codex一次性诊断MD。原claim、两键和未知投递不重发不变。配置/启动项不变，监督PID45040保持60秒普通轮询，不启独立worker。已有请求的手工仓认领/sent标记保留，未重复发模型消息。
 
 本次首单已写完整规格候选，但A1缺真实业务接口/适配器/成本/登记logo资源证据，按SOP为blocked；见本沟通仓receipts/codex中的原请求进度和结果。不是旧暂停或重新授权门槛。
+
+## 2026-11-17 长请求入口修复
+
+2026-11-17T13:39:51+08:00：真实 A1 补件请求 ID 长 67 字符，误用了 skill slug 的 64 字符限制，目录扫描直接跳过。现 request_id 独立限定 1–128 个小写字母、数字或连字符，请求文件名与双键回执别名使用同一规则；skill_id 仍限 64。根目录非法或超限 JSON 文件名写一次 issue，健康记录列出 relay_head、request_file_count，不能静默漏单。白名单、固定提交与原 claim 校验保持。两端纯 Mock 各 52 PASS。
+
+该 A1 补件请求的 40 位 source_ref 在频次产品仓返回 404，修复不得替换来源或越过当前 stage。产品最新为 blocked/PAUSED_BY_OWNER（13:19），本次只修普通接收器，不恢复 A1。源材料和有效恢复请求须由 Muse 按仓补交。此前上午的状态段落为历史记录，当前状态以产品仓 status.json 为准。

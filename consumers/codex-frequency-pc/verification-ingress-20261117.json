@@ -1,0 +1,15 @@
+{
+  "at": "2026-11-17T13:39:37+08:00",
+  "synthetic_only": true,
+  "real_network_calls": 0,
+  "real_queue_calls": 0,
+  "core_sha256": "421782fc6075af7e74195dae55bbb161cb986daf6d92a62d080ce88afa3598d0",
+  "tests_sha256": "3d09c217a04f54aeea19be156b0f21cfb8b08139e5fb8e0ce88e6fdb71163710",
+  "credential_scan_matches": 0,
+  "windows_exit": 0,
+  "windows_tests": 52,
+  "windows_output": "----------------------------------------------------------------------\r\nRan 52 tests in 8.037s\r\n\r\nOK\r\n",
+  "linux_exit": 0,
+  "linux_tests": 52,
+  "linux_output": "----------------------------------------------------------------------\nRan 52 tests in 2.514s\n\nOK\n"
+}

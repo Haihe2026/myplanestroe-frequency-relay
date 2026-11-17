@@ -628,6 +628,171 @@ runpy.run_path(sys.argv[0],run_name="__main__")
         self.assertEqual(len(self.diagnostics()),1)
         self.assert_reason_code('RECEIPT_IDENTITY_INVALID')
 
+    def activate_a1_request(self):
+        """Real request metadata; sources, receipts, transport and delivery stay synthetic."""
+        snap=self.backend.snapshots[RELAY,self.backend.heads[RELAY]]
+        del snap['requests/'+self.req['request_id']+'.json']
+        self.req=dict(request_id='req-muse-to-codex-cross-border-keyword-ranking-a1-evidence-20261117',
+                      **{'from':'muse','to':'codex'},skill_id=SKILL,source_repo=SOURCE,
+                      source_ref='88ca1834de0bf46858c6ee3897d63ec88e630420',
+                      source_path=PRODUCT+'msg-from-muse-20261117-cross-border-keyword-ranking-a1-evidence.md',
+                      kind='handoff')
+        self.assertEqual(len(self.req['request_id']),67)
+        self.install_source()
+        self.publish_request()
+
+    def test_real_67_character_request_is_consumed_once_with_both_claim_keys(self):
+        self.activate_a1_request()
+        self.assertEqual(self.eid,'evt-201d0630f8961f35e5a07ff0c31ec9c95909cd6e226ad7b2910395f180f202af')
+        health=self.poll()
+        self.assertEqual(health['counts'].get('queued'),1)
+        self.assertEqual(health['request_file_count'],1)
+        self.assertEqual(health['relay_head'],self.backend.reads[0][2])
+        self.assertEqual(len(self.sent),1)
+        a=self.remote_receipt(self.event_receipt);b=self.remote_receipt(self.request_receipt)
+        self.assertEqual(a,b)
+        self.assertEqual(a['action'],'claimed')
+        self.assertEqual(a['claim_id'],self.local_claim()['claim_id'])
+        self.assertEqual(self.sent[0]['request'],self.req)
+        self.assertFalse(self.diagnostics())
+        count=len(self.backend.writes)
+        self.poll();self.poll()
+        self.assertEqual(len(self.sent),1)
+        self.assertEqual(len(self.backend.writes),count)
+        self.assert_only_receipts_written()
+
+    def test_long_request_ack_after_restart_keeps_original_claim_and_dual_keys(self):
+        self.activate_a1_request();self.poll()
+        original=self.local_claim()['claim_id']
+        self.c=F.Consumer(self.cfg,self.base,self.backend,self.deliver)
+        self.poll()
+        self.assertEqual(len(self.sent),1)
+        evidence=self.evidence()
+        self.c.ack(self.eid,original,evidence)
+        a=self.remote_receipt(self.event_receipt);b=self.remote_receipt(self.request_receipt)
+        self.assertEqual(a,b)
+        self.assertEqual(a['claim_id'],original)
+        self.assertEqual(a['action'],'acknowledged')
+        self.assertEqual(a['evidence_ref'],evidence)
+        count=len(self.backend.writes)
+        self.c.ack(self.eid,original,evidence);self.poll()
+        self.assertEqual(len(self.backend.writes),count)
+        self.assertEqual(len(self.sent),1)
+        self.assert_only_receipts_written()
+
+    def test_real_long_request_missing_fixed_commit_has_notice_no_claim_or_main_fallback(self):
+        self.activate_a1_request()
+        del self.backend.snapshots[SOURCE,self.req['source_ref']]
+        # Even if current main contains the message, it cannot substitute for the fixed source.
+        self.backend.current_put(SOURCE,self.req['source_path'],PREFIX.encode())
+        health=self.poll()
+        self.assertEqual(health['counts'].get('pending_missing_input'),1)
+        self.assert_no_claim_or_delivery(1)
+        self.assert_reason_code('SOURCE_MESSAGE_NOT_FOUND')
+        self.assertFalse((self.base/'state'/(self.eid+'.json')).exists())
+        source_reads=[(path,ref)for repo,path,ref in self.backend.reads if repo==SOURCE]
+        self.assertTrue(source_reads)
+        self.assertEqual(source_reads,[(self.req['source_path'],self.req['source_ref'])])
+        count=len(self.backend.writes);self.poll();self.poll()
+        self.assertEqual(len(self.backend.writes),count)
+
+    def test_request_boundary_128_accepts_claim_and_ack_in_backend_policy(self):
+        snap=self.backend.snapshots[RELAY,self.backend.heads[RELAY]]
+        del snap['requests/'+self.req['request_id']+'.json']
+        self.req['request_id']='req-'+'a'*124
+        self.assertEqual(len(self.req['request_id']),128)
+        self.publish_request();self.poll()
+        self.assertEqual(len(self.sent),1)
+        policy=object.__new__(F.GitHubBackend)
+        policy._policy(RELAY,'requests/'+self.req['request_id']+'.json')
+        for path in (self.event_receipt,self.request_receipt,
+                     'receipts/'+self.req['request_id']+'.json'):
+            policy._policy(RELAY,path)
+            policy._policy(RELAY,path,write=True)
+        self.c.ack(self.eid,self.local_claim()['claim_id'],self.evidence())
+        self.assertEqual(self.remote_receipt(self.request_receipt)['action'],'acknowledged')
+        self.assertFalse(self.diagnostics())
+        self.assert_only_receipts_written()
+
+    def test_129_character_filename_is_reported_once_before_any_content_read(self):
+        snap=self.backend.snapshots[RELAY,self.backend.heads[RELAY]]
+        del snap['requests/'+self.req['request_id']+'.json']
+        self.req['request_id']='req-'+'a'*125
+        badpath='requests/'+self.req['request_id']+'.json'
+        self.publish_request()
+        health=self.poll()
+        self.assertEqual(health['counts'].get('rejected'),1)
+        self.assertEqual(health['request_file_count'],1)
+        self.assert_no_claim_or_delivery(1)
+        self.assert_reason_code('REQUEST_FILENAME_INVALID')
+        self.assertFalse([row for row in self.backend.reads if row[1]==badpath])
+        self.assertFalse((self.base/'state'/(self.eid+'.json')).exists())
+        count=len(self.backend.writes);self.poll();self.poll()
+        self.assertEqual(len(self.backend.writes),count)
+        policy=object.__new__(F.GitHubBackend)
+        with self.assertRaises(ValueError):policy._policy(RELAY,badpath)
+        with self.assertRaises(ValueError):policy._policy(RELAY,self.request_receipt,write=True)
+
+    def test_malformed_json_filenames_are_visible_without_reading_or_claiming(self):
+        snap=self.backend.snapshots[RELAY,self.backend.heads[RELAY]]
+        del snap['requests/'+self.req['request_id']+'.json']
+        names=['Bad-Request.json','req_bad.json','req-space name.json','req-case.JSON']
+        paths=['requests/'+name for name in names]
+        for path in paths:self.backend.current_put(RELAY,path,b'{"unread":"synthetic"}')
+        health=self.poll()
+        self.assertEqual(health['counts'].get('rejected'),len(paths))
+        self.assertEqual(health['request_file_count'],len(paths))
+        self.assert_no_claim_or_delivery(len(paths))
+        self.assert_reason_code('REQUEST_FILENAME_INVALID')
+        self.assertFalse([row for row in self.backend.reads if row[1]in paths])
+        count=len(self.backend.writes);self.poll();self.poll()
+        self.assertEqual(len(self.backend.writes),count)
+
+    def test_oversized_body_request_id_is_rejected_instead_of_accepting_alias_filename(self):
+        original_filename=self.req['request_id']+'.json'
+        self.req['request_id']='r'*129
+        self.publish_request(filename=original_filename)
+        self.poll();self.assert_no_claim_or_delivery(1)
+        self.assert_reason_code('REQUEST_IDENTIFIER_INVALID')
+
+    def test_long_request_does_not_relax_skill_path_or_repository_boundaries(self):
+        self.activate_a1_request()
+        for field,value,reason in [('skill_id','s'*65,'REQUEST_IDENTIFIER_INVALID'),
+                                   ('source_path',PRODUCT+'../other/message.md','SOURCE_PATH_NOT_ALLOWED'),
+                                   ('source_repo','Haihe2026/myplanestroe','SOURCE_REPO_NOT_ALLOWED')]:
+            old=self.req[field]
+            self.req[field]=value;self.publish_request();self.poll()
+            self.assert_no_claim_or_delivery()
+            self.assert_reason_code(reason)
+            self.req[field]=old
+        self.assertTrue(all(repo in(SOURCE,RELAY)for repo,_,_ in self.backend.reads))
+
+    def test_blocked_long_request_delivery_preserves_product_pause_and_all_product_bytes(self):
+        self.activate_a1_request()
+        status=dict(skill_id=SKILL,sop='sop-frequency-skill-auto',stage='blocked',owner=None,
+                    blocked=dict(reason_code='PAUSED_BY_OWNER',resume_to='brief_ready'))
+        self.set_status(status)
+        source_head=self.backend.heads[SOURCE]
+        source_before=copy.deepcopy(self.backend.snapshots[SOURCE,source_head])
+        self.poll()
+        self.assertEqual(len(self.sent),1,'A valid paused-state notification still needs chat handling')
+        self.assertEqual(self.backend.heads[SOURCE],source_head)
+        self.assertEqual(self.backend.snapshots[SOURCE,source_head],source_before)
+        local=self.local_claim()
+        self.assertEqual(local['fixed_input']['current_stage'],'blocked')
+        self.assertEqual(json.loads(self.backend.current(SOURCE,PRODUCT+'status.json')),status)
+        self.assert_only_receipts_written()
+
+    def test_non_json_auxiliary_file_is_not_treated_as_a_request(self):
+        snap=self.backend.snapshots[RELAY,self.backend.heads[RELAY]]
+        del snap['requests/'+self.req['request_id']+'.json']
+        self.backend.current_put(RELAY,'requests/README.md',b'# Synthetic transport notes')
+        health=self.poll()
+        self.assertEqual(health['request_file_count'],1)
+        self.assertEqual(health['counts'],{})
+        self.assertEqual(health['issues'],[])
+        self.assert_no_effects()
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
