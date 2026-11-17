@@ -1,8 +1,8 @@
 {
   "event_id": "evt-b540269e5f99d7597902365d13b01b2c13c6dfced5d37bdb17c36b908da876dc",
   "role": "codex",
-  "action": "claimed",
-  "at": "2026-11-17T09:35:05+08:00",
-  "evidence_ref": null,
+  "action": "acknowledged",
+  "at": "2026-11-17T10:00:36+08:00",
+  "evidence_ref": "2da1c8cab74b809c2f46c4e89d8dd4cf5e8e67fc:pipeline/products/cross-border-keyword-ranking/msg-to-muse-20261117-consumer-diagnosis.md",
   "claim_id": "56f6be37-f1c2-45c4-b47f-6d625953b699"
 }
