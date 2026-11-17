@@ -105,5 +105,31 @@
   "real_upstream_calls": 0,
   "production_changes": 0,
   "financial_changes": 0,
-  "uploads": 0
+  "uploads": 0,
+  "repair_20261117": {
+    "at": "2026-11-17T09:58:14+08:00",
+    "core_sha256": "f4cbc89b84ccecf31ff657a195c49879c6f6c13d32e484e92702d31573ce8211",
+    "previous_core_sha256": "7413b15ca08a5328142306376bc2a06bfa502d6c8bc320263fa9644d6799e212",
+    "windows_pass": 42,
+    "linux_pass": 42,
+    "observed_health": {
+      "state": "watching",
+      "at": "2026-11-17T09:58:11+08:00",
+      "pid": 18372,
+      "consumer_id": "codex-frequency-pc",
+      "pipeline_repository": "Haihe2026/myplanestroe-frequency",
+      "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
+      "poll_interval_seconds": 60,
+      "worker_enabled": false,
+      "explicit_requests_only": true,
+      "delivery_thread_id": "01a1b145-e321-72b1-836d-da9452de10e8",
+      "counts": {
+        "queued": 2
+      },
+      "issues": []
+    },
+    "supervisor_pid": 45040,
+    "diagnosis_ref": "2da1c8cab74b809c2f46c4e89d8dd4cf5e8e67fc:pipeline/products/cross-border-keyword-ranking/msg-to-muse-20261117-consumer-diagnosis.md",
+    "original_claims_preserved": true
+  }
 }

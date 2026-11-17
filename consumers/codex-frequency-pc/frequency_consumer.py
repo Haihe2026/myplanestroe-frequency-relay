@@ -50,6 +50,18 @@ class Busy(Exception):
     pass
 
 
+class ValidationError(ValueError):
+    def __init__(self, reason_code, detail):
+        super().__init__(detail)
+        self.reason_code = reason_code
+
+
+class MissingInput(NotFound):
+    def __init__(self, reason_code, detail):
+        super().__init__(detail)
+        self.reason_code = reason_code
+
+
 def now():
     return datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds")
 
@@ -67,14 +79,14 @@ def json_object(raw):
         out = {}
         for key, value in values:
             if key in out:
-                raise ValueError("duplicate JSON field")
+                raise ValidationError("JSON_DUPLICATE_FIELD", "metadata contains a duplicate JSON field")
             out[key] = value
         return out
     if len(raw) > 262144:
-        raise ValueError("metadata exceeds byte limit")
+        raise ValidationError("METADATA_TOO_LARGE", "metadata exceeds the byte limit")
     value = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=pairs)
     if not isinstance(value, dict):
-        raise ValueError("metadata must be an object")
+        raise ValidationError("JSON_OBJECT_REQUIRED", "metadata must be a JSON object")
     return value
 
 
@@ -89,31 +101,37 @@ def canonical_path(path):
 
 def validate_binding(cfg):
     if not isinstance(cfg, dict) or set(cfg) - {"runtime"} != set(EXPECTED):
-        raise ValueError("binding fields do not match the frequency allowlist")
+        raise ValidationError("BINDING_FIELDS_MISMATCH", "binding fields do not match the frequency allowlist")
     for key, value in EXPECTED.items():
         if type(cfg.get(key)) is not type(value) or cfg[key] != value:
-            raise ValueError("frequency binding mismatch: " + key)
+            raise ValidationError("BINDING_VALUE_MISMATCH", "frequency binding mismatch: " + key)
     if "runtime" in cfg:
         runtime = cfg["runtime"]
         if not isinstance(runtime, dict) or set(runtime) != {"gh", "proxy", "codex"}:
-            raise ValueError("invalid local runtime fields")
+            raise ValidationError("RUNTIME_FIELDS_INVALID", "invalid local runtime fields")
         if not all(isinstance(runtime[k], str) for k in runtime):
-            raise ValueError("local runtime fields must be strings")
+            raise ValidationError("RUNTIME_FIELDS_INVALID", "local runtime fields must be strings")
     return cfg
 
 
 def validate_request(req, cfg):
     validate_binding(cfg)
     if not isinstance(req, dict) or set(req) != FIELDS or not all(isinstance(v, str) for v in req.values()):
-        raise ValueError("request must have exactly eight string fields")
-    if req["from"] != "muse" or req["to"] != "codex" or req["source_repo"] != SOURCE_REPO:
-        raise ValueError("request sender, recipient or source repository not allowed")
+        raise ValidationError("REQUEST_FIELDS_INVALID", "request must have exactly eight string fields")
+    if req["from"] != "muse":
+        raise ValidationError("REQUEST_SENDER_NOT_ALLOWED", "request sender is not the registered Muse sender")
+    if req["to"] != "codex":
+        raise ValidationError("REQUEST_TARGET_NOT_ALLOWED", "request recipient is not this Codex consumer")
+    if req["source_repo"] != SOURCE_REPO:
+        raise ValidationError("SOURCE_REPO_NOT_ALLOWED", "request source_repo is not the registered frequency product repository")
     if not SLUG.fullmatch(req["skill_id"]) or not SLUG.fullmatch(req["request_id"]):
-        raise ValueError("invalid request or product identifier")
-    if not REF.fullmatch(req["source_ref"]) or req["kind"] not in {"handoff", "question", "dependency", "retry"}:
-        raise ValueError("request reference or kind not allowed")
+        raise ValidationError("REQUEST_IDENTIFIER_INVALID", "invalid request or product identifier")
+    if not REF.fullmatch(req["source_ref"]):
+        raise ValidationError("SOURCE_REF_NOT_FIXED", "source_ref must be a fixed 40-character commit identity")
+    if req["kind"] not in {"handoff", "question", "dependency", "retry"}:
+        raise ValidationError("REQUEST_KIND_NOT_ALLOWED", "request kind is not allowed")
     if not canonical_path(req["source_path"]) or not req["source_path"].startswith(PRODUCT_ROOT + req["skill_id"] + "/"):
-        raise ValueError("source path is outside the assigned frequency product")
+        raise ValidationError("SOURCE_PATH_NOT_ALLOWED", "source_path is outside the assigned frequency product")
     return req
 
 
@@ -136,6 +154,41 @@ def codex_executable(configured):
 
 def event_id(req):
     return "evt-" + hashlib.sha256(json.dumps(req, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()
+
+
+def message_identity(source):
+    """Text is task data, never the repository/claim authorization boundary."""
+    declarations = {}
+    has_prefix = False
+    in_fence = False
+    labels = {"SOP": ("sop_path", SOP_PATH), "流水线仓": ("pipeline_repository", SOURCE_REPO),
+              "流水线仓库": ("pipeline_repository", SOURCE_REPO), "产品仓": ("pipeline_repository", SOURCE_REPO),
+              "业务仓": ("pipeline_repository", SOURCE_REPO), "沟通仓": ("relay_repository", RELAY_REPO),
+              "通信仓": ("relay_repository", RELAY_REPO)}
+    for line in source.decode("utf-8-sig").splitlines():
+        stripped = line.strip()
+        if stripped.startswith(("```", "~~~")):
+            in_fence = not in_fence
+            continue
+        if in_fence or stripped.startswith(">"):
+            continue
+        stripped = re.sub(r"^[#*+\-\s]+", "", stripped.replace("`", "").replace("**", ""))
+        has_prefix = has_prefix or PREFIX in stripped
+        match = re.match(r"^(SOP|流水线仓库|流水线仓|产品仓|业务仓|沟通仓|通信仓)\s*[:：]\s*([^\s（(，,;；]+)", stripped)
+        if match:
+            key, expected = labels[match[1]]
+            declarations.setdefault(key, []).append(match[2] == expected)
+    conflicts = sorted(k for k, values in declarations.items() if not all(values))
+    complete = has_prefix or (declarations.get("sop_path") == [True]
+                              and declarations.get("pipeline_repository") == [True])
+    if conflicts:
+        return dict(mode="metadata_verified_text_conflict", reason_code="TEXT_IDENTITY_CONFLICT",
+                    warning=True, declared_fields=sorted(declarations), conflicting_fields=conflicts)
+    if complete:
+        return dict(mode="equivalent_explicit_identity", reason_code="TEXT_IDENTITY_CONSISTENT",
+                    warning=False, declared_fields=sorted(declarations), conflicting_fields=[])
+    return dict(mode="metadata_verified_text_incomplete", reason_code="TEXT_IDENTITY_INCOMPLETE",
+                warning=True, declared_fields=sorted(declarations), conflicting_fields=[])
 
 
 def write_json(path, value):
@@ -211,10 +264,12 @@ class GitHubBackend:
             if write or not (path == SOP_PATH or path.startswith(PRODUCT_ROOT)):
                 raise ValueError("source repository operation is not allowed")
         elif write:
-            if not re.fullmatch(r"receipts/(?:codex/)?(?:evt-[a-f0-9]{64}|[a-z0-9][a-z0-9-]{0,63})\.json", path):
-                raise ValueError("only frequency receipt writes are allowed")
+            if not (re.fullmatch(r"receipts/(?:codex/)?(?:evt-[a-f0-9]{64}|[a-z0-9][a-z0-9-]{0,63})\.json", path)
+                    or re.fullmatch(r"receipts/codex/issue-[a-f0-9]{64}\.md", path)):
+                raise ValueError("only frequency receipts and immutable issue notices may be written")
         elif not (re.fullmatch(r"requests/[a-z0-9][a-z0-9-]{0,63}\.json", path)
-                  or re.fullmatch(r"receipts/(?:codex/)?(?:evt-[a-f0-9]{64}|[a-z0-9][a-z0-9-]{0,63})\.json", path)):
+                  or re.fullmatch(r"receipts/(?:codex/)?(?:evt-[a-f0-9]{64}|[a-z0-9][a-z0-9-]{0,63})\.json", path)
+                  or re.fullmatch(r"receipts/codex/issue-[a-f0-9]{64}\.md", path)):
             raise ValueError("relay read is outside requests/receipts")
 
     def _api(self, repo, suffix, method="GET", body=None):
@@ -279,6 +334,8 @@ class GitHubBackend:
 
     def update(self, repo, path, raw, oldsha):
         self._policy(repo, path, write=True)
+        if path.endswith(".md"):
+            raise ValueError("issue notices are immutable create-only objects")
         if not REF.fullmatch(oldsha):
             raise ValueError("CAS requires the previous blob identity")
         value = self._api(repo, "contents/" + quote(path, safe="/"), "PUT",
@@ -307,10 +364,63 @@ class Consumer:
     def _save(self, eid, value):
         write_json(self._local_path(eid), value)
 
-    def _audit(self, identifier, state, reason):
+    def _audit(self, identifier, state, reason_code, detail, **extra):
         name = hashlib.sha256(identifier.encode("utf-8")).hexdigest() + ".json"
         write_json(self.base / "audit" / name,
-                   dict(at=now(), consumer_id=CONSUMER_ID, item=identifier, state=state, reason=reason))
+                   dict(at=now(), consumer_id=CONSUMER_ID, item=identifier, state=state,
+                        reason_code=reason_code, detail=detail, **extra))
+
+    def _issue_notice(self, identifier, request_blob, state, reason_code, detail, fixed_ref=None):
+        """One deterministic non-claim notice per fixed input/reason; no poll spam."""
+        key = hashlib.sha256((identifier + "\n" + request_blob + "\n" + reason_code + "\n" + detail).encode("utf-8")).hexdigest()
+        path = "receipts/codex/issue-" + key + ".md"
+        marker = self.base / "state" / ("issue-" + key + ".json")
+        body = ("# 频次消费者输入问题（非认领、非完成回执）\n\n"
+                f"- 消费者：`{CONSUMER_ID}`\n- 请求：`{identifier}`\n"
+                f"- 固定请求blob：`{request_blob}`\n- 状态：`{state}`\n"
+                f"- source_ref：`{fixed_ref if fixed_ref and REF.fullmatch(fixed_ref) else '未取得有效固定提交'}`\n"
+                f"- reason_code：`{reason_code}`\n- 具体原因：{detail}\n"
+                f"- 唯一业务仓：`{SOURCE_REPO}`\n- 唯一SOP：`{SOP_PATH}`\n\n"
+                "本文件只报告消费者核验结果，不是任务claim；没有新建认领、执行产品任务或调用模型。"
+                "请修正对应请求/固定资料或补齐缺件；消费者会在后续普通程序轮询重新核验。"
+                "不要据此扩大生产、财务、上游或发布权限。\n").encode("utf-8")
+        notice = json_object(marker.read_bytes()) if marker.exists() else None
+        if notice and notice.get("state") == "published":
+            return {"diagnostic_path": path, "diagnostic_state": "published"}
+        if not notice:
+            notice = dict(path=path, state="publish_intent", body_sha256=hashlib.sha256(body).hexdigest())
+            write_json(marker, notice)
+        try:
+            if notice["state"] in {"publish_unknown", "publish_intent"} and marker.exists():
+                try:
+                    stored, _ = self.backend.read(RELAY_REPO, path, "main")
+                except NotFound:
+                    stored = None
+                if stored is not None:
+                    if hashlib.sha256(stored).hexdigest() != notice["body_sha256"]:
+                        raise Conflict("existing issue notice differs; retained without overwrite")
+                    notice["state"] = "published"
+                    write_json(marker, notice)
+                    return {"diagnostic_path": path, "diagnostic_state": "published"}
+            try:
+                self.backend.create(RELAY_REPO, path, body)
+            except Conflict:
+                stored, _ = self.backend.read(RELAY_REPO, path, "main")
+                if hashlib.sha256(stored).hexdigest() != notice["body_sha256"]:
+                    raise
+            notice["state"] = "published"
+            write_json(marker, notice)
+            return {"diagnostic_path": path, "diagnostic_state": "published"}
+        except Exception:
+            notice["state"] = "publish_unknown"
+            write_json(marker, notice)
+            return {"diagnostic_path": path, "diagnostic_state": "publish_unknown"}
+
+    def _required_source(self, path, ref, reason_code, detail):
+        try:
+            return self.backend.read(SOURCE_REPO, path, ref)
+        except NotFound as error:
+            raise MissingInput(reason_code, detail) from error
 
     def _get_receipts(self, req, eid):
         values = {}
@@ -325,41 +435,51 @@ class Consumer:
                     or not isinstance(value.get("claim_id"), str)
                     or not re.fullmatch(r"[a-f0-9-]{36}", value["claim_id"])
                     or not isinstance(value.get("at"), str)):
-                raise ValueError("receipt identity or request-id alias mismatch")
+                raise ValidationError("RECEIPT_IDENTITY_INVALID", "receipt identity or request-id alias does not match the canonical request")
             values[path] = (value, sha)
         return values
 
     def _verify_source(self, req):
-        source, source_sha = self.backend.read(SOURCE_REPO, req["source_path"], req["source_ref"])
-        sop, sop_sha = self.backend.read(SOURCE_REPO, SOP_PATH, req["source_ref"])
+        source, source_sha = self._required_source(req["source_path"], req["source_ref"], "SOURCE_MESSAGE_NOT_FOUND",
+                                                  "the assigned product message does not exist at source_ref")
+        sop, sop_sha = self._required_source(SOP_PATH, req["source_ref"], "SOP_NOT_FOUND",
+                                            "the registered frequency SOP is missing at source_ref")
         if not sop.strip():
-            raise ValueError("fixed frequency SOP is empty")
-        first = [re.sub(r"^#{1,6}\s+", "", x.replace("`", "").strip())
-                 for x in source.decode("utf-8-sig").splitlines() if x.strip()][:5]
-        if not any(x.startswith(PREFIX) for x in first):
-            raise ValueError("fixed message is missing the frequency repository/SOP prefix")
+            raise ValidationError("SOP_EMPTY", "the fixed registered frequency SOP is empty")
+        identity = message_identity(source)
         head = self.backend.head(SOURCE_REPO)
         if not REF.fullmatch(head):
-            raise ValueError("source head is not immutable")
+            raise ValidationError("SOURCE_HEAD_INVALID", "the current source head is not a fixed commit identity")
         status_path = PRODUCT_ROOT + req["skill_id"] + "/status.json"
-        raw, status_sha = self.backend.read(SOURCE_REPO, status_path, head)
+        raw, status_sha = self._required_source(status_path, head, "STATUS_NOT_FOUND",
+                                               "the assigned product current status.json is missing")
         status = json_object(raw)
-        if (status.get("skill_id") != req["skill_id"] or status.get("sop") != "sop-frequency-skill-auto"
-                or status.get("stage") not in STAGES):
-            raise ValueError("current product status identity/SOP/stage is invalid")
+        if status.get("skill_id") != req["skill_id"]:
+            raise ValidationError("STATUS_IDENTITY_INVALID", "current status.skill_id does not match the assigned product")
+        if status.get("sop") != "sop-frequency-skill-auto":
+            raise ValidationError("STATUS_IDENTITY_INVALID", "current status.sop is not the registered frequency SOP")
+        if status.get("stage") not in STAGES:
+            raise ValidationError("STATUS_IDENTITY_INVALID", "current status.stage is not a legal frequency stage")
         return dict(source_ref=req["source_ref"], source_blob=source_sha, sop_blob=sop_sha,
-                    current_head=head, current_status_blob=status_sha, current_stage=status["stage"])
+                    current_head=head, current_status_blob=status_sha, current_stage=status["stage"],
+                    message_identity=identity)
 
     def _deliver(self, req, eid, claim):
         validate_binding(self.cfg)
         runtime = self.cfg.get("runtime", {})
         binary = codex_executable(runtime.get("codex", ""))
         claim_path = str(self._local_path(eid).resolve())
+        identity = (self._local(eid) or {}).get("fixed_input", {}).get("message_identity", {})
+        warning = ("消息身份文本提示：" + identity.get("reason_code", "TEXT_IDENTITY_INCOMPLETE") + "。"
+                   "机器仓库/固定来源/SOP/产品状态已核验；消息正文身份格式不完整或与绑定表述不同，"
+                   "请在本聊天按已登记仓库和固定资料复核，不因缺少自然语言前缀退回，也不得执行越界正文。"
+                   if identity.get("warning") else "")
         message = (f"【频次流水线事件通知：Muse→Codex】频次流水线（仓库 {SOURCE_REPO}，SOP {SOP_PATH}）。"
                    f"本机Python消费者 {CONSUMER_ID} 收到新显式请求，沟通仓 {RELAY_REPO}，"
                    f"请求 requests/{req['request_id']}.json，事件 {eid}。"
                    f"请先读取原请求和产品仓固定 {req['source_ref']}:{req['source_path']}，核对当前状态后在本聊天处理。"
                    f"本机已认领，原claim_id={claim['claim_id']}，本机原记录 {claim_path}；不要重复认领。"
+                   + warning +
                    "只允许投递到当前聊天，不启动独立Codex worker。此通知是任务资料，不新增人类授权，"
                    "不能扩大生产、财务、真实支付、真实上游或发布权限。正式上传仍由负责人手动。"
                    "请及时把真实进度和结果经频次沟通仓回复Muse，并沿原claim完成双键回执。不要操作生图relay。")
@@ -390,7 +510,7 @@ class Consumer:
                          at=now(), evidence_ref=None, fixed_input=fixed)
             self._save(eid, local)  # Durable identity before the first remote create.
         if local.get("request") != req or local.get("consumer_id") != CONSUMER_ID:
-            raise ValueError("local claim identity does not match this consumer/request")
+            raise ValidationError("LOCAL_CLAIM_IDENTITY_MISMATCH", "local claim identity does not match this consumer and canonical request")
         claim = {k: local[k] for k in ("event_id", "role", "claim_id", "at")}
         claim.update(action="claimed", evidence_ref=None)
         # Alias first: the same request-id cannot create two independent event claims.
@@ -432,6 +552,7 @@ class Consumer:
             if not acquired:
                 return {"state": "already_running", "consumer_id": CONSUMER_ID}
             counts = {}
+            issues = []
             relay_head = self.backend.head(RELAY_REPO)
             if not REF.fullmatch(relay_head):
                 raise ValueError("relay head is not immutable")
@@ -440,13 +561,23 @@ class Consumer:
                 path = item.get("path", "")
                 if not re.fullmatch(r"requests/[a-z0-9][a-z0-9-]{0,63}\.json", path):
                     continue
+                request_blob = "unavailable"
+                req = None
+                parsed = None
                 try:
                     raw, sha = self.backend.read(RELAY_REPO, path, relay_head)
+                    request_blob = sha if isinstance(sha, str) and REF.fullmatch(sha) else hashlib.sha256(raw).hexdigest()
                     if sha != item.get("sha"):
-                        raise ValueError("request listing/content blob mismatch")
-                    req = validate_request(json_object(raw), self.cfg)
+                        raise ValidationError("REQUEST_BLOB_MISMATCH", "request listing and fixed content blob identities differ")
+                    parsed = json_object(raw)
+                    # This shared requests root also contains Codex-to-Muse replies.
+                    # They are not malformed Codex work and must remain untouched.
+                    if parsed.get("to") == "muse":
+                        counts["other_recipient"] = counts.get("other_recipient", 0) + 1
+                        continue
+                    req = validate_request(parsed, self.cfg)
                     if path != "requests/" + req["request_id"] + ".json":
-                        raise ValueError("request-id/filename mismatch")
+                        raise ValidationError("REQUEST_ID_FILENAME_MISMATCH", "request_id does not match the canonical request filename")
                     eid = event_id(req)
                     existing = self._get_receipts(req, eid)
                     remote_ack = next((v for v, _ in existing.values() if v["action"] == "acknowledged"), None)
@@ -458,21 +589,35 @@ class Consumer:
                     else:
                         fixed = self._verify_source(req)
                         state = self._claim_and_deliver(req, eid, fixed, existing)
-                except NotFound:
+                except NotFound as exc:
                     state = "pending_missing_input"
-                    self._audit(path, state, "fixed source, SOP or current status is missing; no claim or delivery")
-                except (ValueError, UnicodeError, json.JSONDecodeError):
+                    code = getattr(exc, "reason_code", "REQUEST_OR_FIXED_INPUT_NOT_FOUND")
+                    detail = str(exc) if isinstance(exc, MissingInput) else "the fixed request or required input object could not be found"
+                    candidate_ref = (req or parsed or {}).get("source_ref")
+                    fixed_ref = candidate_ref if isinstance(candidate_ref, str) and REF.fullmatch(candidate_ref) else None
+                    notice = self._issue_notice(path, request_blob, state, code, detail, fixed_ref)
+                    self._audit(path, state, code, detail, **notice)
+                    issues.append(dict(item=path, state=state, reason_code=code, **notice))
+                except (ValueError, UnicodeError) as exc:
                     state = "rejected"
-                    self._audit(path, state, "request, source, receipt or frequency binding validation failed")
+                    code = getattr(exc, "reason_code", "JSON_INVALID" if isinstance(exc, (UnicodeError, json.JSONDecodeError)) else "INPUT_VALIDATION_FAILED")
+                    detail = str(exc) if isinstance(exc, ValidationError) else "input encoding, JSON shape or metadata validation failed"
+                    candidate_ref = (req or parsed or {}).get("source_ref")
+                    fixed_ref = candidate_ref if isinstance(candidate_ref, str) and REF.fullmatch(candidate_ref) else None
+                    notice = self._issue_notice(path, request_blob, state, code, detail, fixed_ref)
+                    self._audit(path, state, code, detail, **notice)
+                    issues.append(dict(item=path, state=state, reason_code=code, **notice))
                 except Exception as exc:
                     # Unknown network/create/queue outcomes retain the original intent.
                     state = "needs_followup"
-                    self._audit(path, state, type(exc).__name__)
+                    code = "BACKEND_OPERATION_UNCONFIRMED"
+                    self._audit(path, state, code, "operation outcome is unconfirmed; no rejection notice or blind retry", error_type=type(exc).__name__)
+                    issues.append(dict(item=path, state=state, reason_code=code))
                 counts[state] = counts.get(state, 0) + 1
             result = dict(state="watching", at=now(), pid=os.getpid(), consumer_id=CONSUMER_ID,
                           pipeline_repository=SOURCE_REPO, relay_repository=RELAY_REPO,
                           poll_interval_seconds=60, worker_enabled=False, explicit_requests_only=True,
-                          delivery_thread_id=THREAD_ID, counts=counts)
+                          delivery_thread_id=THREAD_ID, counts=counts, issues=issues)
             write_json(self.base / "state" / "health.json", result)
             return result
 
@@ -538,5 +683,6 @@ if __name__ == "__main__":
         main()
     except Exception as error:
         # No raw stderr, endpoint, config values or credentials in unattended output.
-        print(json.dumps({"state": "error", "error_type": type(error).__name__}, ensure_ascii=False))
+        print(json.dumps({"state": "error", "error_type": type(error).__name__,
+                          "reason_code": getattr(error, "reason_code", "OPERATION_UNCONFIRMED")}, ensure_ascii=False))
         raise SystemExit(1)
