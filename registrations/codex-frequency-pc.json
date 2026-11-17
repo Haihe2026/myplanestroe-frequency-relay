@@ -56,9 +56,11 @@
   "transport_mode": "explicit_requests_only",
   "runtime_health": {
     "state": "watching",
-    "at": "2026-11-17T10:08:09+08:00",
-    "pid": 28960,
+    "at": "2026-11-17T13:43:11+08:00",
+    "pid": 16204,
     "consumer_id": "codex-frequency-pc",
+    "relay_head": "a1038b55c906cb04ed76656fae09ad5918031725",
+    "request_file_count": 6,
     "pipeline_repository": "Haihe2026/myplanestroe-frequency",
     "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
     "poll_interval_seconds": 60,
@@ -66,10 +68,19 @@
     "explicit_requests_only": true,
     "delivery_thread_id": "01a1b145-e321-72b1-836d-da9452de10e8",
     "counts": {
-      "queued": 1,
-      "acknowledged": 1
+      "other_recipient": 2,
+      "pending_missing_input": 1,
+      "acknowledged": 2
     },
-    "issues": []
+    "issues": [
+      {
+        "item": "requests/req-muse-to-codex-cross-border-keyword-ranking-a1-evidence-20261117.json",
+        "state": "pending_missing_input",
+        "reason_code": "SOURCE_MESSAGE_NOT_FOUND",
+        "diagnostic_path": "receipts/codex/issue-c1c374a5992c19291e09509b056e3e9a868746d08e5b93af039fcc97854e19de.md",
+        "diagnostic_state": "published"
+      }
+    ]
   },
   "supervisor": {
     "state": "watching",
@@ -193,7 +204,7 @@
     },
     "status": "ready_waiting_muse_request"
   },
-  "updated_at": "2026-11-17T13:39:51+08:00",
+  "updated_at": "2026-11-17T13:43:36+08:00",
   "ingress_repair_20261117": {
     "at": "2026-11-17T13:39:51+08:00",
     "core_sha256": "421782fc6075af7e74195dae55bbb161cb986daf6d92a62d080ce88afa3598d0",
@@ -205,7 +216,15 @@
     "skill_id_limit": 64,
     "original_claims_preserved": true,
     "report_path": "receipts/codex/req-muse-to-codex-cross-border-keyword-ranking-a1-evidence-20261117-ingress-repair-20261117.md",
-    "deployment": "awaiting_local_atomic_update"
+    "deployment": "verified_local_atomic_update",
+    "deployed_at": "2026-11-17T13:40:51+08:00",
+    "supervisor_pid": 45040,
+    "restarted": false,
+    "real_scan_at": "2026-11-17T13:43:11+08:00",
+    "input_issue_path": "receipts/codex/issue-c1c374a5992c19291e09509b056e3e9a868746d08e5b93af039fcc97854e19de.md",
+    "actual_new_task_claims": 0,
+    "actual_new_chat_deliveries": 0,
+    "current_product_stage": "blocked/PAUSED_BY_OWNER"
   },
   "before_ingress_repair_20261117": {
     "code": {
