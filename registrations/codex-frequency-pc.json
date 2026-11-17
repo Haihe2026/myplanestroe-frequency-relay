@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "consumer_id": "codex-frequency-pc",
-  "status": "ready_waiting_muse_request",
+  "status": "active_repository_triggered",
   "registered_at": "2026-11-16T22:25:13+08:00",
   "startup_allowlist": {
     "schema_version": 1,
@@ -28,8 +28,8 @@
   },
   "code": {
     "frequency_consumer.py": {
-      "bytes": 27321,
-      "sha256": "7413b15ca08a5328142306376bc2a06bfa502d6c8bc320263fa9644d6799e212"
+      "bytes": 37636,
+      "sha256": "f4cbc89b84ccecf31ff657a195c49879c6f6c13d32e484e92702d31573ce8211"
     },
     "README.md": {
       "bytes": 3766,
@@ -44,8 +44,8 @@
       "sha256": "4c9e0d999e1a58ee598c946a514de0a9ef8e012ef035728342aa3ca9e6a34043"
     },
     "test_frequency_consumer.py": {
-      "bytes": 24810,
-      "sha256": "5038b280e78e371392d6356a2b7ab759f8e9e8024e127b6ee335c580290beb5e"
+      "bytes": 40319,
+      "sha256": "92b9262fddccea603d747d2c9b58dd6147ad1c2e89070afdf732376aaf364c63"
     },
     "watch_frequency_consumer.py": {
       "bytes": 2693,
@@ -56,8 +56,8 @@
   "transport_mode": "explicit_requests_only",
   "runtime_health": {
     "state": "watching",
-    "at": "2026-11-16T22:24:49+08:00",
-    "pid": 45492,
+    "at": "2026-11-17T10:08:09+08:00",
+    "pid": 28960,
     "consumer_id": "codex-frequency-pc",
     "pipeline_repository": "Haihe2026/myplanestroe-frequency",
     "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
@@ -65,7 +65,11 @@
     "worker_enabled": false,
     "explicit_requests_only": true,
     "delivery_thread_id": "01a1b145-e321-72b1-836d-da9452de10e8",
-    "counts": {}
+    "counts": {
+      "queued": 1,
+      "acknowledged": 1
+    },
+    "issues": []
   },
   "supervisor": {
     "state": "watching",
@@ -80,14 +84,14 @@
   "single_supervisor_verified": true,
   "tests": {
     "windows": {
-      "executed": 36,
-      "passed": 36,
+      "executed": 42,
+      "passed": 42,
       "failed": 0,
       "skipped": 0
     },
     "linux": {
-      "executed": 36,
-      "passed": 36,
+      "executed": 42,
+      "passed": 42,
       "failed": 0,
       "skipped": 0
     }
@@ -100,8 +104,8 @@
   "image_relay_files_unchanged": true,
   "image_startup_files_unchanged": true,
   "image_supervisors_still_running": true,
-  "first_product_started": false,
-  "first_product_status_present": false,
+  "first_product_started": true,
+  "first_product_status_present": true,
   "real_upstream_calls": 0,
   "production_changes": 0,
   "financial_changes": 0,
@@ -131,5 +135,63 @@
     "supervisor_pid": 45040,
     "diagnosis_ref": "2da1c8cab74b809c2f46c4e89d8dd4cf5e8e67fc:pipeline/products/cross-border-keyword-ranking/msg-to-muse-20261117-consumer-diagnosis.md",
     "original_claims_preserved": true
-  }
+  },
+  "initial_registration_20261116": {
+    "registered_at": "2026-11-16T22:25:13+08:00",
+    "code": {
+      "frequency_consumer.py": {
+        "bytes": 27321,
+        "sha256": "7413b15ca08a5328142306376bc2a06bfa502d6c8bc320263fa9644d6799e212"
+      },
+      "README.md": {
+        "bytes": 3766,
+        "sha256": "46d152a44a938f3222db3016a239934c03ab58a438dda80c51e8a06e7830466d"
+      },
+      "start.ps1": {
+        "bytes": 774,
+        "sha256": "ac243cad65e0523dee1dbc093a42a47f60542f511a8916bd60fc2f9a637cf5c9"
+      },
+      "stop.ps1": {
+        "bytes": 240,
+        "sha256": "4c9e0d999e1a58ee598c946a514de0a9ef8e012ef035728342aa3ca9e6a34043"
+      },
+      "test_frequency_consumer.py": {
+        "bytes": 24810,
+        "sha256": "5038b280e78e371392d6356a2b7ab759f8e9e8024e127b6ee335c580290beb5e"
+      },
+      "watch_frequency_consumer.py": {
+        "bytes": 2693,
+        "sha256": "ffd00b2f86829cce6d7e51c5e3fc917ecf2e9e0cd15ddf4dc7517b0433be7f15"
+      }
+    },
+    "runtime_health": {
+      "state": "watching",
+      "at": "2026-11-16T22:24:49+08:00",
+      "pid": 45492,
+      "consumer_id": "codex-frequency-pc",
+      "pipeline_repository": "Haihe2026/myplanestroe-frequency",
+      "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
+      "poll_interval_seconds": 60,
+      "worker_enabled": false,
+      "explicit_requests_only": true,
+      "delivery_thread_id": "01a1b145-e321-72b1-836d-da9452de10e8",
+      "counts": {}
+    },
+    "tests": {
+      "windows": {
+        "executed": 36,
+        "passed": 36,
+        "failed": 0,
+        "skipped": 0
+      },
+      "linux": {
+        "executed": 36,
+        "passed": 36,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "status": "ready_waiting_muse_request"
+  },
+  "updated_at": "2026-11-17T10:08:04+08:00"
 }

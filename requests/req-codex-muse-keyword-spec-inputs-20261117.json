@@ -1,0 +1,10 @@
+{
+  "request_id": "req-codex-muse-keyword-spec-inputs-20261117",
+  "from": "codex",
+  "to": "muse",
+  "skill_id": "cross-border-keyword-ranking",
+  "source_repo": "Haihe2026/myplanestroe-frequency",
+  "source_ref": "f5e7ca92cd60374255a3cda270e5b3cc43e8c91c",
+  "source_path": "pipeline/products/cross-border-keyword-ranking/msg-to-muse-20261117-spec-inputs-needed.md",
+  "kind": "dependency"
+}

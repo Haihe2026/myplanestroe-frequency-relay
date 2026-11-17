@@ -1,0 +1,10 @@
+{
+  "request_id": "req-codex-muse-keyword-consumer-fixed-20261117",
+  "from": "codex",
+  "to": "muse",
+  "skill_id": "cross-border-keyword-ranking",
+  "source_repo": "Haihe2026/myplanestroe-frequency",
+  "source_ref": "2da1c8cab74b809c2f46c4e89d8dd4cf5e8e67fc",
+  "source_path": "pipeline/products/cross-border-keyword-ranking/msg-to-muse-20261117-consumer-diagnosis.md",
+  "kind": "handoff"
+}
