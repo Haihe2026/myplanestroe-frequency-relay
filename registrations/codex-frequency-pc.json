@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "consumer_id": "codex-frequency-pc",
-  "status": "active_repository_triggered",
+  "status": "paused_by_owner",
   "registered_at": "2026-11-16T22:25:13+08:00",
   "startup_allowlist": {
     "schema_version": 1,
@@ -55,41 +55,20 @@
   "source_bootstrap_ref": "d6e083bb37beebbed876f3ffb4a037ad6d0a551d",
   "transport_mode": "explicit_requests_only",
   "runtime_health": {
-    "state": "watching",
-    "at": "2026-11-17T13:43:11+08:00",
-    "pid": 16204,
+    "state": "stopped_by_owner",
+    "at": "2026-11-17T14:04:55+08:00",
     "consumer_id": "codex-frequency-pc",
-    "relay_head": "a1038b55c906cb04ed76656fae09ad5918031725",
-    "request_file_count": 6,
-    "pipeline_repository": "Haihe2026/myplanestroe-frequency",
-    "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
-    "poll_interval_seconds": 60,
+    "polling_enabled": false,
     "worker_enabled": false,
-    "explicit_requests_only": true,
-    "delivery_thread_id": "01a1b145-e321-72b1-836d-da9452de10e8",
-    "counts": {
-      "other_recipient": 2,
-      "pending_missing_input": 1,
-      "acknowledged": 2
-    },
-    "issues": [
-      {
-        "item": "requests/req-muse-to-codex-cross-border-keyword-ranking-a1-evidence-20261117.json",
-        "state": "pending_missing_input",
-        "reason_code": "SOURCE_MESSAGE_NOT_FOUND",
-        "diagnostic_path": "receipts/codex/issue-c1c374a5992c19291e09509b056e3e9a868746d08e5b93af039fcc97854e19de.md",
-        "diagnostic_state": "published"
-      }
-    ]
+    "frequency_process_count": 0
   },
   "supervisor": {
-    "state": "watching",
-    "pid": 45040,
-    "consumer_exit": 0,
-    "interval_seconds": 60
+    "state": "stopped_by_owner",
+    "pid": null,
+    "previous_pid": 45040
   },
   "login_startup": {
-    "enabled": true,
+    "enabled": false,
     "unique_name": "SkillRelay-FrequencyCodexConsumer.vbs"
   },
   "single_supervisor_verified": true,
@@ -204,7 +183,7 @@
     },
     "status": "ready_waiting_muse_request"
   },
-  "updated_at": "2026-11-17T13:43:36+08:00",
+  "updated_at": "2026-11-17T14:04:55+08:00",
   "ingress_repair_20261117": {
     "at": "2026-11-17T13:39:51+08:00",
     "core_sha256": "421782fc6075af7e74195dae55bbb161cb986daf6d92a62d080ce88afa3598d0",
@@ -286,5 +265,57 @@
     },
     "updated_at": "2026-11-17T10:08:04+08:00"
   },
-  "current_product_state": "blocked/PAUSED_BY_OWNER"
+  "current_product_state": "blocked/PAUSED_BY_OWNER",
+  "before_owner_stop_20261117": {
+    "status": "active_repository_triggered",
+    "runtime_health": {
+      "state": "watching",
+      "at": "2026-11-17T13:43:11+08:00",
+      "pid": 16204,
+      "consumer_id": "codex-frequency-pc",
+      "relay_head": "a1038b55c906cb04ed76656fae09ad5918031725",
+      "request_file_count": 6,
+      "pipeline_repository": "Haihe2026/myplanestroe-frequency",
+      "relay_repository": "Haihe2026/myplanestroe-frequency-relay",
+      "poll_interval_seconds": 60,
+      "worker_enabled": false,
+      "explicit_requests_only": true,
+      "delivery_thread_id": "01a1b145-e321-72b1-836d-da9452de10e8",
+      "counts": {
+        "other_recipient": 2,
+        "pending_missing_input": 1,
+        "acknowledged": 2
+      },
+      "issues": [
+        {
+          "item": "requests/req-muse-to-codex-cross-border-keyword-ranking-a1-evidence-20261117.json",
+          "state": "pending_missing_input",
+          "reason_code": "SOURCE_MESSAGE_NOT_FOUND",
+          "diagnostic_path": "receipts/codex/issue-c1c374a5992c19291e09509b056e3e9a868746d08e5b93af039fcc97854e19de.md",
+          "diagnostic_state": "published"
+        }
+      ]
+    },
+    "supervisor": {
+      "state": "watching",
+      "pid": 45040,
+      "consumer_exit": 0,
+      "interval_seconds": 60
+    },
+    "login_startup": {
+      "enabled": true,
+      "unique_name": "SkillRelay-FrequencyCodexConsumer.vbs"
+    },
+    "updated_at": "2026-11-17T13:43:36+08:00"
+  },
+  "polling_enabled": false,
+  "owner_stop_20261117": {
+    "at": "2026-11-17T14:04:55+08:00",
+    "authority": "负责人在本聊天直接要求停频次、暂时只做生图产品",
+    "startup_disabled": true,
+    "frequency_process_count": 0,
+    "claims_preserved": true,
+    "product_states_unchanged": true,
+    "resume": "仅按负责人后续直接恢复指令；仓库新请求不自动恢复本机消费者"
+  }
 }
